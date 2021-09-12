@@ -51,6 +51,8 @@ class SnakeGameAI:
         self.food = None
         self._place_food()
         self.frame_iteration = 0
+        self.rnd_moves = 0
+        self.ai_moves = 0
 
 
     def _place_food(self):

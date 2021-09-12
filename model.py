@@ -4,6 +4,8 @@ import torch.optim as optim
 import torch.nn.functional as F
 import os
 
+MODEL_PATH = "./model"
+
 class Linear_QNet(nn.Module):
     def __init__(self, input_size, hidden_size, output_size):
         super().__init__()
@@ -15,14 +17,18 @@ class Linear_QNet(nn.Module):
         x = self.linear2(x)
         return x
 
-    def save(self, file_name='model.pth'):
-        model_folder_path = './model'
-        if not os.path.exists(model_folder_path):
-            os.makedirs(model_folder_path)
+    def save(self, file_name="model.pth"):
 
-        file_name = os.path.join(model_folder_path, file_name)
+        if not os.path.exists(MODEL_PATH):
+            os.makedirs(MODEL_PATH)
+
+        file_name = os.path.join(MODEL_PATH, file_name)
         torch.save(self.state_dict(), file_name)
 
+    def load(self, file_name="model.pth"):
+        file_name = os.path.join(MODEL_PATH, file_name)
+        self.load_state_dict(torch.load(file_name))
+        self.eval()
 
 class QTrainer:
     def __init__(self, model, lr, gamma):
@@ -45,7 +51,7 @@ class QTrainer:
             next_state = torch.unsqueeze(next_state, 0)
             action = torch.unsqueeze(action, 0)
             reward = torch.unsqueeze(reward, 0)
-            done = (done, )
+            done = (done,)
 
         # 1: predicted Q values with current state
         pred = self.model(state)
@@ -54,10 +60,12 @@ class QTrainer:
         for idx in range(len(done)):
             Q_new = reward[idx]
             if not done[idx]:
-                Q_new = reward[idx] + self.gamma * torch.max(self.model(next_state[idx]))
+                Q_new = reward[idx] + self.gamma * torch.max(
+                    self.model(next_state[idx])
+                )
 
             target[idx][torch.argmax(action[idx]).item()] = Q_new
-    
+
         # 2: Q_new = r + y * max(next_predicted Q value) -> only do this if not done
         # pred.clone()
         # preds[argmax(action)] = Q_new
@@ -66,6 +74,3 @@ class QTrainer:
         loss.backward()
 
         self.optimizer.step()
-
-
-
